@@ -6,8 +6,9 @@
 
 | 항목 | 내용 |
 |------|------|
-| 버전 | v1.1 |
+| 버전 | v1.2 |
 | 작성일 | 2026-05-12 |
+| 최종 수정일 | 2026-05-14 |
 | 작성자 | HEOTAEHWAN |
 | 참조 | PRD v1.1, 도메인 정의서 v1.2, 구조설계원칙 v1.0 |
 | 상태 | 작성 완료 |
@@ -179,7 +180,7 @@ erDiagram
 | 영역 | 기술 |
 |------|------|
 | **Frontend** | React 19, TypeScript, Zustand (전역 상태), TanStack Query (서버 상태), axios (HTTP 클라이언트), Mobile-first 반응형 CSS |
-| **Backend** | Node.js 22 LTS, Express 4.x, REST API, JWT 인증, Joi (입력 검증) |
+| **Backend** | Node.js 22 LTS, Express 5.2.1, REST API, JWT 인증, Joi (입력 검증), swagger-ui-express 5.0.1 (API 문서화) |
 | **Database** | PostgreSQL 17, pg 라이브러리 (ORM 미사용) |
 | **아키텍처** | 레이어드 아키텍처 (Router → Middleware → Controller → Service → Repository) |
 | **인증** | JWT Access Token (1차) / OAuth Social 전략 패턴으로 확장 예정 (2차) / Refresh Token은 2차 검토 |
@@ -197,4 +198,13 @@ erDiagram
 
 ---
 
-*작성일: 2026-05-12 | 버전: v1.1 | 참조: PRD v1.2, 도메인 정의서 v1.2, 구조설계원칙 v1.1*
+---
+
+## 변경 이력
+
+| 버전 | 날짜 | 변경 내용 |
+|------|------|-----------|
+| v1.1 | 2026-05-12 | 최초 작성 |
+| v1.2 | 2026-05-14 | 기술 스택 업데이트: Express 4.x → 5.2.1, swagger-ui-express 5.0.1 추가 (API 문서화 `/api-docs`) |
+
+*최종 수정일: 2026-05-14 | 버전: v1.2 | 참조: PRD v1.2, 도메인 정의서 v1.2, 구조설계원칙 v1.1*

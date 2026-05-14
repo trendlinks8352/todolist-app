@@ -1,0 +1,34 @@
+{
+  "mcpServers": {
+    "postgresql-mcp": {
+      "command": "npx",
+      "args": ["-y", "@henkey/postgres-mcp-server"]
+    }
+
+
+    "context7": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@upstash/context7-mcp"]
+    },
+    "playwright": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@playwright/mcp@latest"]
+    },
+    "chrome-devtools": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "chrome-devtools-mcp@latest"]
+    },
+    "supabase": {
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp"
+    },
+    "postgresql-mcp": {
+      "command": "cmd",
+      "args": ["/c", "npx", "-y", "@henkey/postgres-mcp-server"]
+    }
+  
+
+
+
+  }
+}

@@ -30,11 +30,13 @@ CREATE TABLE users (
     email       VARCHAR(255) NOT NULL,
     password    VARCHAR(255) NOT NULL,   -- bcrypt hash
     name        VARCHAR(100) NOT NULL,
+    theme       VARCHAR(10)  NOT NULL DEFAULT 'light',  -- 사용자 UI 테마 설정
     created_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMPTZ  NOT NULL DEFAULT NOW(),
 
-    CONSTRAINT pk_users       PRIMARY KEY (id),
-    CONSTRAINT uq_users_email UNIQUE      (email)
+    CONSTRAINT pk_users        PRIMARY KEY (id),
+    CONSTRAINT uq_users_email  UNIQUE      (email),
+    CONSTRAINT chk_users_theme CHECK       (theme IN ('light', 'dark'))
 );
 
 COMMENT ON TABLE  users            IS '서비스 사용자';
@@ -126,6 +128,10 @@ CREATE INDEX idx_todos_user_id
 
 CREATE INDEX idx_todos_category_id
     ON todos(category_id);             -- BR-09: 카테고리 삭제 전 이관 대상 조회
+
+-- categories - 기본 카테고리 이름 중복 방지 (ON CONFLICT DO NOTHING 지원)
+CREATE UNIQUE INDEX idx_categories_default_name
+    ON categories(name) WHERE user_id IS NULL;
 
 -- todos - 복합 (UC-07 필터 패턴 최적화)
 CREATE INDEX idx_todos_user_completed

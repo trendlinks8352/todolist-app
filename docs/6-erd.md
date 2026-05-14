@@ -4,9 +4,10 @@
 
 | 항목 | 내용 |
 |------|------|
-| 버전 | v1.0 |
+| 버전 | v1.1 |
 | 작성일 | 2026-05-12 |
-| 참조 문서 | PRD v1.2, 도메인 정의서 v1.2 |
+| 최종 수정일 | 2026-05-14 |
+| 참조 문서 | PRD v1.2, 도메인 정의서 v1.2, schema.sql |
 | 작성자 | HEOTAEHWAN |
 | 대상 | 데이터베이스 설계, 백엔드 개발 |
 
@@ -201,37 +202,50 @@ erDiagram
 
 인덱스는 조회 성능을 위해 설계되었습니다. 자주 조회되는 필터와 정렬 기준을 기반으로 합니다.
 
-### 권장 인덱스 목록
+### 실제 생성 인덱스 목록 (schema.sql 기준)
 
-| 테이블 | 컬럼 | 타입 | 조회 패턴 | 성능 목표 |
-|--------|------|------|---------|---------|
-| `users` | `email` | UNIQUE INDEX | 로그인 (email로 사용자 검색) | O(log N) |
-| `todos` | `user_id` | INDEX | 사용자의 모든 할일 조회 | O(log N) |
-| `todos` | `(user_id, is_completed)` | COMPOSITE INDEX | 사용자의 미완료/완료 할일 필터링 | O(log N) |
-| `todos` | `(user_id, due_date)` | COMPOSITE INDEX | 사용자의 마감일 기반 조회 (DC-08) | O(log N) |
-| `todos` | `(user_id, category_id)` | COMPOSITE INDEX | 사용자의 카테고리별 할일 조회 | O(log N) |
-| `todos` | `category_id` | INDEX | 카테고리별 할일 조회 | O(log N) |
-| `todos` | `is_completed` | INDEX | 전체 할일 완료 여부 필터링 | O(log N) |
-| `categories` | `user_id` | INDEX | 사용자의 카테고리 조회 | O(log N) |
+| 인덱스명 | 테이블 | 컬럼 | 타입 | 용도 |
+|---------|--------|------|------|------|
+| `idx_users_email` | `users` | `email` | UNIQUE INDEX | 로그인 이메일 조회, BR-02 중복 방지 이중 보호 |
+| `idx_categories_user_id` | `categories` | `user_id` | INDEX | 사용자 카테고리 목록 조회 |
+| `idx_categories_default_name` | `categories` | `name` WHERE `user_id IS NULL` | UNIQUE PARTIAL INDEX | 기본 카테고리명 중복 방지, ON CONFLICT DO NOTHING 지원 |
+| `idx_todos_user_id` | `todos` | `user_id` | INDEX | 사용자 할일 전체 조회 |
+| `idx_todos_category_id` | `todos` | `category_id` | INDEX | BR-09 카테고리 삭제 전 이관 대상 조회 |
+| `idx_todos_user_completed` | `todos` | `(user_id, is_completed)` | COMPOSITE INDEX | 완료 여부 필터 (가장 빈번한 패턴) |
+| `idx_todos_user_due_date` | `todos` | `(user_id, due_date)` | COMPOSITE INDEX | 기간 필터: dueDate 기준 (DC-08) |
+| `idx_todos_user_category` | `todos` | `(user_id, category_id)` | COMPOSITE INDEX | 카테고리 필터 |
 
-### 인덱스 생성 SQL 예시
+### 인덱스 생성 SQL (schema.sql 실제 적용 내용)
 
 ```sql
 -- users 테이블
-CREATE UNIQUE INDEX idx_users_email ON users(email);
-
--- todos 테이블 - 단일 컬럼 인덱스
-CREATE INDEX idx_todos_user_id ON todos(user_id);
-CREATE INDEX idx_todos_category_id ON todos(category_id);
-CREATE INDEX idx_todos_is_completed ON todos(is_completed);
-
--- todos 테이블 - 복합 인덱스 (자주 함께 조회되는 컬럼)
-CREATE INDEX idx_todos_user_completed ON todos(user_id, is_completed);
-CREATE INDEX idx_todos_user_due_date ON todos(user_id, due_date);
-CREATE INDEX idx_todos_user_category ON todos(user_id, category_id);
+CREATE UNIQUE INDEX idx_users_email
+    ON users(email);
 
 -- categories 테이블
-CREATE INDEX idx_categories_user_id ON categories(user_id);
+CREATE INDEX idx_categories_user_id
+    ON categories(user_id);
+
+-- 기본 카테고리 이름 중복 방지 (부분 인덱스)
+CREATE UNIQUE INDEX idx_categories_default_name
+    ON categories(name) WHERE user_id IS NULL;
+
+-- todos 테이블 - 단일 컬럼 인덱스
+CREATE INDEX idx_todos_user_id
+    ON todos(user_id);
+
+CREATE INDEX idx_todos_category_id
+    ON todos(category_id);
+
+-- todos 테이블 - 복합 인덱스 (UC-07 필터 패턴 최적화)
+CREATE INDEX idx_todos_user_completed
+    ON todos(user_id, is_completed);
+
+CREATE INDEX idx_todos_user_due_date
+    ON todos(user_id, due_date);
+
+CREATE INDEX idx_todos_user_category
+    ON todos(user_id, category_id);
 ```
 
 ### 인덱스 설계 고려사항
@@ -239,8 +253,9 @@ CREATE INDEX idx_categories_user_id ON categories(user_id);
 1. **로그인 조회**: `users.email`은 UNIQUE INDEX로 설정하여 중복 방지 및 빠른 조회
 2. **사용자별 필터링**: 대부분의 조회는 특정 사용자의 데이터이므로 `user_id` 포함 인덱스 우선
 3. **복합 인덱스**: `(user_id, is_completed)`, `(user_id, due_date)` 등으로 여러 조건 조회 최적화
-4. **쓰기 성능**: 인덱스가 많을수록 INSERT/UPDATE/DELETE 성능 저하 → 자주 조회되는 패턴만 선정
-5. **메모리 사용**: 프로덕션 데이터베이스 크기와 메모리 용량을 고려하여 조정
+4. **부분 인덱스**: `idx_categories_default_name`은 `user_id IS NULL` 조건을 가진 부분 인덱스로, 기본 카테고리 시드 데이터의 중복 삽입 방지에 사용 (`ON CONFLICT DO NOTHING`)
+5. **쓰기 성능**: 인덱스가 많을수록 INSERT/UPDATE/DELETE 성능 저하 → 자주 조회되는 패턴만 선정
+6. **메모리 사용**: 프로덕션 데이터베이스 크기와 메모리 용량을 고려하여 조정
 
 ---
 
@@ -271,6 +286,7 @@ CREATE INDEX idx_categories_user_id ON categories(user_id);
 | 버전 | 작성일 | 변경 내용 |
 |------|--------|---------|
 | v1.0 | 2026-05-12 | 초기 ERD 설계 — PRD v1.2, 도메인 정의서 v1.2 기준 |
+| v1.1 | 2026-05-14 | 인덱스 목록을 schema.sql 실제 구현과 동기화: `idx_todos_is_completed` 단일 인덱스 제거(미생성), `idx_categories_default_name` 부분 인덱스 추가 |
 
 ---
 
