@@ -967,6 +967,7 @@ button { font-family: var(--font-sans); }
   position: fixed;
   bottom: var(--space-8);
   right: var(--space-8);
+  z-index: 200;
   height: 52px !important;
   padding: 0 var(--space-6) !important;
   border-radius: var(--radius-full) !important;
